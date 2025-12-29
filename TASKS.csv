@@ -1,0 +1,119 @@
+Task Number,Task Name,Goal
+1.1,Create DevOps VM,Set up isolated environment for DevOps
+1.1.1,Create VM,Provision Ubuntu VM
+1.1.2,Allocate resources,Assign CPU/RAM/disk
+1.1.3,Enable networking,Ensure VM can reach VPS
+1.1.4,Install updates,Secure and update OS
+1.2,Install Docker,Prepare container environment
+1.2.1,Install Docker Engine,Enable container runtime
+1.2.2,Install Docker Compose,Enable multi-container apps
+1.2.3,Add user to docker group,Allow non-root Docker usage
+1.3,Prepare directories,Set up Gitea storage
+1.3.1,Create data directory,Store persistent Gitea data
+1.3.2,Set permissions,Ensure correct UID/GID access
+
+2.1,GitHub Setup,Create primary remote
+2.1.1,Create GitHub repo,Initialize cloud repo
+2.1.2,Clone repo locally,Begin development
+2.1.3,Push initial commit,Establish main branch
+
+2.2,Gitea Setup,Create mirrored DevOps environment
+2.2.1,Deploy Gitea container,Run Gitea in VM
+2.2.2,Create Gitea repo,Prepare mirror target
+2.2.3,Enable pull mirroring,Sync from GitHub
+2.2.4,Add Gitea remote locally,Enable dual-remote workflow
+
+2.3,Project assets,Set up project management
+2.3.1,Create board,Track tasks visually
+2.3.2,Create milestones,Organize phases
+2.3.3,Create wiki,Document architecture
+2.3.4,Create templates,Standardize issues
+
+3.1,Install Postgres,Prepare VPS database
+3.1.1,Install Postgres,Enable DB backend
+3.1.2,Create database,Store admin data
+3.1.3,Create DB user,Secure DB access
+3.2,Prepare Python env,Set up backend environment
+3.2.1,Install Python,Enable app runtime
+3.2.2,Create directory,Store app code
+3.2.3,Create venv,Isolate dependencies
+3.3,Prepare WireGuard,Enable VPN management
+3.3.1,Install WireGuard,Install WG tools
+3.3.2,Create wg0 interface,Configure VPN
+3.3.3,Verify connectivity,Ensure PC ↔ VPS link
+
+4.1,Project structure,Build backend skeleton
+4.1.1,Create layout,Organize project files
+4.1.2,Add config loader,Load environment variables
+4.1.3,Add requirements,Define dependencies
+4.2,Database layer,Implement DB logic
+4.2.1,Create models,Define DB schema
+4.2.2,Init script,Create tables
+4.2.3,Add migrations,Support schema changes
+4.3,WireGuard integration,Control WG programmatically
+4.3.1,Implement wg_control,Wrap WG commands
+4.3.2,Add key validation,Prevent invalid keys
+4.3.3,Add IP validation,Prevent invalid IPs
+4.3.4,Add peer functions,Add/remove peers
+4.4,Config generation,Produce client configs
+4.4.1,Implement builder,Generate wg configs
+4.4.2,Add QR generator,Support mobile import
+4.4.3,Add IP allocator,Assign next free IP
+
+5.1,Authentication,Secure admin panel
+5.1.1,Login page,Enable login
+5.1.2,Password hashing,Secure credentials
+5.1.3,Session management,Track logged-in users
+5.1.4,CSRF protection,Prevent CSRF attacks
+5.2,Peer management,Manage WG peers
+5.2.1,Peer list,Display peers
+5.2.2,Add peer,Create new peer
+5.2.3,Remove peer,Delete peer
+5.2.4,Show config,Display config + QR
+5.3,WG status,Show live WG info
+5.3.1,Parse dump,Read WG state
+5.3.2,Display status,Show handshake + traffic
+
+6.1,Git remote,Enable deployment
+6.1.1,Add GitHub remote,Primary remote
+6.1.2,Add Gitea remote,Secondary remote
+6.1.3,Test push/pull,Verify connectivity
+
+6.2,Deployment script,Automate deployment
+6.2.1,Create script,Define deploy steps
+6.2.2,Pull from GitHub,Use cloud as source of truth
+6.2.3,Install deps,Install Python packages
+6.2.4,Restart service,Reload admin site
+
+6.3,Systemd service,Run admin site
+6.3.1,Create service file,Define systemd unit
+6.3.2,Enable service,Start on boot
+6.3.3,Test restart,Verify reliability
+
+7.1,Functional testing,Verify features
+7.1.1,Add peer test,Ensure add works
+7.1.2,Remove peer test,Ensure delete works
+7.1.3,Import config test,Verify mobile import
+7.1.4,Connectivity test,Verify WG tunnel
+7.2,Error testing,Test failure cases
+7.2.1,Invalid key test,Reject bad keys
+7.2.2,Duplicate IP test,Prevent conflicts
+7.2.3,Missing fields test,Validate inputs
+7.3,Deployment testing,Verify deploy pipeline
+7.3.1,Modify code,Trigger deploy
+7.3.2,Run deploy,Execute script
+7.3.3,Verify service,Ensure app updates
+
+8.1,Wiki documentation,Document system
+8.1.1,Architecture page,Explain system design
+8.1.2,DB schema page,Document tables
+8.1.3,WG wrapper page,Explain WG logic
+8.1.4,Deployment page,Explain deploy steps
+8.1.5,Security page,Document security model
+8.1.6,Github/Gitea workflow page,Explain dual-remote setup
+
+8.2,Project organization,Finalize Phase One
+8.2.1,Update board,Move tasks to done
+8.2.2,Close issues,Complete tasks
+8.2.3,Create Phase Two milestone,Prepare next phase
+
