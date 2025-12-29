@@ -1,3 +1,15 @@
+phase-one-project/
+│
+├── PHASE_ONE_PLAN.md
+├── TASKS.csv
+├── README.md
+└── docs/
+    ├── ARCHITECTURE_OVERVIEW.md
+    ├── DATABASE_SCHEMA.md
+    ├── DEPLOYMENT_WORKFLOW.md
+    ├── SECURITY_MODEL.md
+    └── GITHUB_GITEA_WORKFLOW.md
+
 # WireGuard Admin Panel — Phase One Project Files (GitHub + Gitea)
 
 This ZIP contains all documentation and planning assets for Phase One of the WireGuard Admin Panel project, updated to support:
