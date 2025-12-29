@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Add Peer</h1>
+
+<form method="POST" action="/peers-ui/add">
+    <div class="mb-3">
+        <label class="form-label">Peer Name</label>
+        <input type="text" name="name" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Public Key</label>
+        <input type="text" name="public_key" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Allowed IPs</label>
+        <input type="text" name="allowed_ips" class="form-control" placeholder="10.0.0.5/32" required>
+    </div>
+
+    <button class="btn btn-primary">Create Peer</button>
+    <a href="/peers-ui/add" class="btn btn-primary">Add Peer</a>
+
+    <a href="/peers-ui" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}
+

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Peer Config</h1>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <pre id="configBox" class="bg-light p-3 border rounded">{{ config }}</pre>
+        <button class="btn btn-primary mt-2" onclick="copyConfig()">Copy to Clipboard</button>
+        <a href="/peers-ui" class="btn btn-secondary mt-2">Back</a>
+    </div>
+</div>
+
+<script>
+function copyConfig() {
+    const text = document.getElementById("configBox").innerText;
+    navigator.clipboard.writeText(text);
+    alert("Config copied to clipboard");
+}
+</script>
+{% endblock %}
+

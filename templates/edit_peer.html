@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Edit Peer</h1>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="POST">
+
+            <div class="mb-3">
+                <label class="form-label">Peer Name</label>
+                <input type="text" name="name" class="form-control" value="{{ peer.name }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Allowed IPs</label>
+                <input type="text" name="allowed_ips" class="form-control" value="{{ peer.allowed_ips }}" required>
+            </div>
+
+            <button class="btn btn-primary">Save Changes</button>
+            <a href="/peers-ui" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

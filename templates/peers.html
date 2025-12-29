@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Peers</h1>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Allowed IPs</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in peers %}
+        <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.name }}</td>
+            <td>{{ p.allowed_ips }}</td>
+            <td>
+                <a href="/peers-ui/{{ p.id }}/config" class="btn btn-sm btn-secondary">Config</a>
+                <a href="/peers-ui/{{ p.id }}/edit" class="btn btn-sm btn-warning">Edit</a>
+
+                <form action="/peers/{{ p.id }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="/peers-ui/add" class="btn btn-primary">Add Peer</a>
+{% endblock %}
+

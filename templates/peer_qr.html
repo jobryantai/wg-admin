@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">WireGuard QR Code</h1>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body text-center">
+        <img src="data:image/png;base64,{{ qr_data }}" class="img-fluid mb-3" alt="QR Code">
+
+        <h5>Config Preview</h5>
+        <pre class="bg-light p-3 border rounded">{{ config }}</pre>
+
+        <a href="/peers-ui" class="btn btn-secondary mt-3">Back</a>
+    </div>
+</div>
+{% endblock %}
+
