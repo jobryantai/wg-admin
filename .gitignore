@@ -1,0 +1,73 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.egg
+*.log
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Byte-compiled / optimized / DLL files
+*.so
+*.dll
+*.dylib
+
+# -------------------------
+# Flask / Instance / Secrets
+# -------------------------
+instance/
+*.sqlite3
+*.db
+.env.local
+.env.dev
+.env.prod
+
+# -------------------------
+# OS / Editor junk
+# -------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+
+# -------------------------
+# IDEs
+# -------------------------
+.vscode/
+.idea/
+*.iml
+
+# -------------------------
+# Deployment / Build artifacts
+# -------------------------
+dist/
+build/
+*.tar.gz
+
+# -------------------------
+# Your project-specific exclusions
+# -------------------------
+
+# Prevent accidentally committing local scripts or secrets
+scripts/setup_local_pc.sh
+scripts/uninstall_wg_admin_service.sh
+
+# Prevent committing local WireGuard configs
+*.conf
+wg_admin/static/qr_codes/
+
+# Prevent committing local Postgres dumps
+*.sql
+*.dump
+
+# Prevent committing local test data
+test_data/
