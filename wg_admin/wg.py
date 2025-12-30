@@ -10,10 +10,36 @@ def run_cmd(cmd):
         shell=True,
         capture_output=True,
         text=True,
-        timeout=5  # prevents hanging forever
+        timeout=5
     )
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
+
+# -----------------------------
+# NEW: Required by routes.py
+# -----------------------------
+
+def sync_wg_interface():
+    """
+    Reload the WireGuard interface.
+    Equivalent to: wg-quick down wg0 && wg-quick up wg0
+    """
+    run_cmd(f"wg-quick down {WG_INTERFACE}")
+    out, err, code = run_cmd(f"wg-quick up {WG_INTERFACE}")
+    return out if code == 0 else f"Error: {err}"
+
+
+def get_wg_status():
+    """
+    Return the output of `wg show`.
+    """
+    out, err, code = run_cmd(f"wg show {WG_INTERFACE}")
+    return out if code == 0 else f"Error: {err}"
+
+
+# -----------------------------
+# Existing functions
+# -----------------------------
 
 def wg_show():
     cmd = f"wg show {WG_INTERFACE} dump"
@@ -47,4 +73,3 @@ def wg_dump():
         if len(parts) >= 1:
             peers.append(parts[0])  # public key
     return peers
-
