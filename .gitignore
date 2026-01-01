@@ -71,3 +71,4 @@ wg_admin/static/qr_codes/
 
 # Prevent committing local test data
 test_data/
+.env
