@@ -1,9 +1,31 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1 class="mb-4">WireGuard Status</h1>
+<h2>WireGuard Status</h2>
 
-<pre class="bg-light p-3 border rounded">{{ status }}</pre>
+<p>Below is the current WireGuard interface and peer status as reported by <code>wg show</code>.</p>
 
-<a href="/dashboard" class="btn btn-secondary mt-3">Back</a>
+<div style="
+    margin-top: 20px;
+    padding: 20px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+">
+
+    {% if status %}
+        <pre style="
+            background: #fff;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        ">{{ status }}</pre>
+    {% else %}
+        <p>No WireGuard status available.</p>
+    {% endif %}
+
+</div>
+
 {% endblock %}
-

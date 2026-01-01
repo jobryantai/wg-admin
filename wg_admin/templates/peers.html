@@ -1,29 +1,33 @@
 {% extends "base.html" %}
-{% block content %}
-<h1 class="mb-4">Peers</h1>
 
-<table class="table table-striped">
+{% block content %}
+<h2>Manage Peers</h2>
+
+<p>Below is the list of all WireGuard peers configured on this server.</p>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
     <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Allowed IPs</th>
-            <th>Actions</th>
+        <tr style="background: #eee;">
+            <th style="padding: 10px; border: 1px solid #ccc;">ID</th>
+            <th style="padding: 10px; border: 1px solid #ccc;">Name</th>
+            <th style="padding: 10px; border: 1px solid #ccc;">Public Key</th>
+            <th style="padding: 10px; border: 1px solid #ccc;">Allowed IPs</th>
+            <th style="padding: 10px; border: 1px solid #ccc;">Actions</th>
         </tr>
     </thead>
     <tbody>
-        {% for p in peers %}
+        {% for peer in peers %}
         <tr>
-            <td>{{ p.id }}</td>
-            <td>{{ p.name }}</td>
-            <td>{{ p.allowed_ips }}</td>
-            <td>
-                <a href="/peers-ui/{{ p.id }}/config" class="btn btn-sm btn-secondary">Config</a>
-                <a href="/peers-ui/{{ p.id }}/edit" class="btn btn-sm btn-warning">Edit</a>
-
-                <form action="/peers/{{ p.id }}" method="POST" style="display:inline;">
-                    <input type="hidden" name="_method" value="DELETE">
-                    <button class="btn btn-sm btn-danger">Delete</button>
+            <td style="padding: 10px; border: 1px solid #ccc;">{{ peer.id }}</td>
+            <td style="padding: 10px; border: 1px solid #ccc;">{{ peer.name }}</td>
+            <td style="padding: 10px; border: 1px solid #ccc;">{{ peer.public_key }}</td>
+            <td style="padding: 10px; border: 1px solid #ccc;">{{ peer.allowed_ips }}</td>
+            <td style="padding: 10px; border: 1px solid #ccc;">
+                <a href="/peers-ui/{{ peer.id }}/edit">Edit</a> |
+                <form action="/peers-ui/{{ peer.id }}/delete" method="POST" style="display:inline;">
+                    <button type="submit" style="color: red; background: none; border: none; cursor: pointer;">
+                        Delete
+                    </button>
                 </form>
             </td>
         </tr>
@@ -31,6 +35,15 @@
     </tbody>
 </table>
 
-<a href="/peers-ui/add" class="btn btn-primary">Add Peer</a>
-{% endblock %}
+<div style="margin-top: 20px;">
+    <a href="/peers-ui/add" style="
+        display: inline-block;
+        padding: 10px 15px;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+    ">Add New Peer</a>
+</div>
 
+{% endblock %}

@@ -1,27 +1,42 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1 class="mb-4">Add Peer</h1>
+<h2>Add New Peer</h2>
 
-<form method="POST" action="/peers-ui/add">
-    <div class="mb-3">
-        <label class="form-label">Peer Name</label>
-        <input type="text" name="name" class="form-control" required>
-    </div>
+<p>Fill in the details below to create a new WireGuard peer.</p>
 
-    <div class="mb-3">
-        <label class="form-label">Public Key</label>
-        <input type="text" name="public_key" class="form-control" required>
-    </div>
+<form action="/peers-ui/add" method="POST" style="margin-top: 20px;">
 
-    <div class="mb-3">
-        <label class="form-label">Allowed IPs</label>
-        <input type="text" name="allowed_ips" class="form-control" placeholder="10.0.0.5/32" required>
-    </div>
+    <label for="name">Peer Name</label><br>
+    <input type="text" id="name" name="name" required
+           style="width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px;">
 
-    <button class="btn btn-primary">Create Peer</button>
-    <a href="/peers-ui/add" class="btn btn-primary">Add Peer</a>
+    <label for="public_key">Public Key</label><br>
+    <input type="text" id="public_key" name="public_key" required
+           style="width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px;">
 
-    <a href="/peers-ui" class="btn btn-secondary">Cancel</a>
+    <label for="allowed_ips">Allowed IPs</label><br>
+    <input type="text" id="allowed_ips" name="allowed_ips" required
+           placeholder="e.g. 10.0.0.5/32"
+           style="width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px;">
+
+    <button type="submit" style="
+        padding: 10px 15px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    ">Add Peer</button>
+
+    <a href="/peers-ui" style="
+        margin-left: 15px;
+        padding: 10px 15px;
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+    ">Cancel</a>
+
 </form>
 {% endblock %}
-

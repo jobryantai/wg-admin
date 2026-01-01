@@ -1,58 +1,18 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1 class="mb-4">Dashboard</h1>
+<h2>Dashboard</h2>
 
-<div class="row">
+<p>Welcome to the WireGuard Admin Panel. Use the navigation bar above to manage peers, view audit logs, check WireGuard status, or update your password.</p>
 
-    <!-- Peers -->
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">Peers</h5>
-                <p class="card-text">Manage WireGuard peers.</p>
-                <a href="/peers-ui" class="btn btn-primary">Open</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Audit Log -->
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">Audit Log</h5>
-                <p class="card-text">View recent admin actions.</p>
-                <a href="/audit-ui" class="btn btn-primary">Open</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- WireGuard Status -->
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">WireGuard Status</h5>
-                <p class="card-text">View live interface and peer state.</p>
-                <a href="/wg-status" class="btn btn-primary">Open</a>
-            </div>
-        </div>
-    </div>
-
+<div style="
+    margin-top: 25px;
+    padding: 20px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+">
+    <h3>System Overview</h3>
+    <p>Select an option from the navigation bar to begin.</p>
 </div>
-
-<div class="row mt-4">
-
-    <!-- Sync DB → wg0 -->
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">Sync WireGuard</h5>
-                <p class="card-text">Ensure wg0 matches the database.</p>
-                <a href="/sync-wg" class="btn btn-warning">Sync DB → wg0</a>
-            </div>
-        </div>
-    </div>
-
-</div>
-
 {% endblock %}
-

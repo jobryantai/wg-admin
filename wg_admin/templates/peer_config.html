@@ -1,21 +1,41 @@
 {% extends "base.html" %}
-{% block content %}
-<h1 class="mb-4">Peer Config</h1>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <pre id="configBox" class="bg-light p-3 border rounded">{{ config }}</pre>
-        <button class="btn btn-primary mt-2" onclick="copyConfig()">Copy to Clipboard</button>
-        <a href="/peers-ui" class="btn btn-secondary mt-2">Back</a>
-    </div>
+{% block content %}
+<h2>Peer Configuration</h2>
+
+<p>Below is the WireGuard configuration for this peer. You can copy it directly into your client device.</p>
+
+<div style="
+    margin-top: 20px;
+    padding: 20px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+">
+
+    {% if config_text %}
+        <pre style="
+            background: #fff;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        ">{{ config_text }}</pre>
+    {% else %}
+        <p>No configuration available.</p>
+    {% endif %}
+
 </div>
 
-<script>
-function copyConfig() {
-    const text = document.getElementById("configBox").innerText;
-    navigator.clipboard.writeText(text);
-    alert("Config copied to clipboard");
-}
-</script>
-{% endblock %}
+<div style="margin-top: 20px;">
+    <a href="/peers-ui" style="
+        padding: 10px 15px;
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+    ">Back to Peers</a>
+</div>
 
+{% endblock %}

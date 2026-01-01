@@ -1,25 +1,37 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1 class="mb-4">Edit Peer</h1>
+<h2>Edit Peer</h2>
 
-<div class="card shadow-sm">
-    <div class="card-body">
-        <form method="POST">
+<p>Update the peer information below.</p>
 
-            <div class="mb-3">
-                <label class="form-label">Peer Name</label>
-                <input type="text" name="name" class="form-control" value="{{ peer.name }}" required>
-            </div>
+<form action="/peers-ui/{{ peer.id }}/edit" method="POST" style="margin-top: 20px;">
 
-            <div class="mb-3">
-                <label class="form-label">Allowed IPs</label>
-                <input type="text" name="allowed_ips" class="form-control" value="{{ peer.allowed_ips }}" required>
-            </div>
+    <label for="name">Peer Name</label><br>
+    <input type="text" id="name" name="name" value="{{ peer.name }}" required
+           style="width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px;">
 
-            <button class="btn btn-primary">Save Changes</button>
-            <a href="/peers-ui" class="btn btn-secondary">Cancel</a>
-        </form>
-    </div>
-</div>
+    <label for="allowed_ips">Allowed IPs</label><br>
+    <input type="text" id="allowed_ips" name="allowed_ips" value="{{ peer.allowed_ips }}" required
+           style="width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px;">
+
+    <button type="submit" style="
+        padding: 10px 15px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    ">Save Changes</button>
+
+    <a href="/peers-ui" style="
+        margin-left: 15px;
+        padding: 10px 15px;
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+    ">Cancel</a>
+
+</form>
 {% endblock %}
-

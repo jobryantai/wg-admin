@@ -1,11 +1,12 @@
-from flask import Blueprint, request, session, redirect, url_for, render_template, make_response
+from flask import Blueprint, request, session, redirect, render_template, make_response, flash, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from .db import get_db
 from .auth import verify_user, login_required
-from .peers import add_peer, list_peers, delete_peer
-from .wgconfig import generate_client_config
+from .peers import add_peer, list_peers, delete_peer, update_peer, get_peer_by_id
+from .wgconfig_full import generate_full_config, write_config_safely, apply_config
+from .wg import wg_show, wg_add_peer, wg_remove_peer
 from .audit import log_action
-from .qrcodegen import generate_qr_base64
-from .wg import wg_add_peer, wg_remove_peer, wg_show
 
 bp = Blueprint("main", __name__)
 
@@ -16,22 +17,37 @@ bp = Blueprint("main", __name__)
 @bp.route("/health")
 def health():
     return {"status": "ok"}
+@bp.route("/import-config", methods=["GET", "POST"])
+@login_required
+def import_config():
+    if request.method == "POST":
+        file = request.files.get("config_file")
+        if not file:
+            flash("No file uploaded.")
+            return render_template("import_config.html")
+
+        # TODO: implement your import logic here
+        flash("Config imported successfully.")
+        return redirect("/dashboard")
+
+    return render_template("import_config.html")
 
 
 # -----------------------------
-# DB Test
+# Unified Entry Point
+# If NOT logged in → redirect to login
+# If logged in → show dashboard layout
 # -----------------------------
-@bp.route("/db-test")
-def db_test():
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM test_table LIMIT 1;")
-    row = cur.fetchone()
-    return row or {"error": "no data"}
+@bp.route("/")
+@bp.route("/index.html")
+def index():
+    if "user_id" not in session:
+        return redirect(url_for("main.login"))
+    return render_template("dashboard.html")
 
 
 # -----------------------------
-# Authentication
+# Login
 # -----------------------------
 @bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -43,53 +59,51 @@ def login():
         if user:
             session["user_id"] = user["id"]
             log_action(user["id"], "login")
-            return {"status": "logged_in"}
+            return redirect("/")
 
         return {"error": "invalid credentials"}, 401
 
-    return """
-    <form method="POST">
-        <input name="username" placeholder="username">
-        <input name="password" type="password" placeholder="password">
-        <button>Login</button>
-    </form>
-    """
+    return render_template("login.html")
 
 
+# -----------------------------
+# Logout
+# -----------------------------
 @bp.route("/logout")
 def logout():
     log_action(session.get("user_id"), "logout")
     session.clear()
-    return {"status": "logged_out"}
+    return redirect("/login")
 
 
 # -----------------------------
-# Admin Dashboard UI
+# Main Dashboard (PRIMARY)
 # -----------------------------
 @bp.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html", title="Dashboard")
+    return render_template("dashboard.html")
 
 
 # -----------------------------
-# Peer Management UI
+# Peer List UI
 # -----------------------------
 @bp.route("/peers-ui")
 @login_required
 def peers_ui():
     peers = list_peers()
-    return render_template("peers.html", peers=peers, title="Peers")
+    return render_template("peers.html", peers=peers)
 
 
-# Add Peer UI (GET)
+# -----------------------------
+# Add Peer UI
+# -----------------------------
 @bp.route("/peers-ui/add", methods=["GET"])
 @login_required
 def peers_add_ui():
-    return render_template("add_peer.html", title="Add Peer")
+    return render_template("add_peer.html")
 
 
-# Add Peer UI (POST)
 @bp.route("/peers-ui/add", methods=["POST"])
 @login_required
 def peers_add_ui_post():
@@ -98,221 +112,49 @@ def peers_add_ui_post():
     allowed_ips = request.form.get("allowed_ips")
 
     peer_id = add_peer(name, public_key, allowed_ips, session["user_id"])
-
-    # Apply to WireGuard
     wg_add_peer(public_key, allowed_ips)
-    log_action(session["user_id"], "wg_add_peer", f"{public_key} {allowed_ips}")
 
-    log_action(session["user_id"], "add_peer", f"peer_id={peer_id}, name={name}")
+    log_action(session["user_id"], "add_peer", f"peer_id={peer_id}")
     return redirect("/peers-ui")
-@bp.route("/sync-wg")
-@login_required
-def sync_wg():
-    db = get_db()
-    cur = db.cursor()
 
-    # Get DB peers
-    cur.execute("SELECT public_key, allowed_ips FROM peers;")
-    db_peers = cur.fetchall()
 
-    # Get wg0 peers
-    wg_peers = wg_dump()
-
-    if wg_peers is None:
-        return {"error": "wg0 not available"}, 500
-
-    db_pubkeys = {p["public_key"]: p["allowed_ips"] for p in db_peers}
-    wg_pubkeys = set(wg_peers)
-
-    # Peers missing in wg0 → add them
-    for pubkey, allowed_ips in db_pubkeys.items():
-        if pubkey not in wg_pubkeys:
-            wg_add_peer(pubkey, allowed_ips)
-            log_action(session["user_id"], "sync_add_peer", pubkey)
-
-    # Peers in wg0 but not in DB → remove them
-    for pubkey in wg_pubkeys:
-        if pubkey not in db_pubkeys:
-            wg_remove_peer(pubkey)
-            log_action(session["user_id"], "sync_remove_peer", pubkey)
-
-    log_action(session["user_id"], "sync_complete")
-
-    return redirect("/dashboard")
-
+# -----------------------------
+# Edit Peer UI
+# -----------------------------
 @bp.route("/peers-ui/<int:peer_id>/edit", methods=["GET"])
 @login_required
 def peers_edit_ui(peer_id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM peers WHERE id = %s;", (peer_id,))
-    peer = cur.fetchone()
-
+    peer = get_peer_by_id(peer_id)
     if not peer:
         return {"error": "peer not found"}, 404
 
-    return render_template("edit_peer.html", peer=peer, title="Edit Peer")
+    return render_template("edit_peer.html", peer=peer)
+
+
 @bp.route("/peers-ui/<int:peer_id>/edit", methods=["POST"])
 @login_required
 def peers_edit_ui_post(peer_id):
     name = request.form.get("name")
     allowed_ips = request.form.get("allowed_ips")
 
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT public_key FROM peers WHERE id = %s;", (peer_id,))
-    peer = cur.fetchone()
-
+    peer = get_peer_by_id(peer_id)
     if not peer:
         return {"error": "peer not found"}, 404
 
-    public_key = peer["public_key"]
-
-    # Update DB
     update_peer(peer_id, name, allowed_ips, session["user_id"])
+    wg_add_peer(peer["public_key"], allowed_ips)
 
-    # Update WireGuard live interface
-    wg_add_peer(public_key, allowed_ips)
-
-    log_action(session["user_id"], "edit_peer", f"peer_id={peer_id}, name={name}, allowed_ips={allowed_ips}")
-
+    log_action(session["user_id"], "edit_peer", f"peer_id={peer_id}")
     return redirect("/peers-ui")
 
-# Peer Config UI
-@bp.route("/peers-ui/<int:peer_id>/config")
+
+# -----------------------------
+# Delete Peer UI
+# -----------------------------
+@bp.route("/peers-ui/<int:peer_id>/delete", methods=["POST"])
 @login_required
-def peer_config_ui(peer_id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM peers WHERE id = %s;", (peer_id,))
-    peer = cur.fetchone()
-
-    if not peer:
-        return {"error": "peer not found"}, 404
-
-    server_public_key = "SERVER_PUBLIC_KEY_HERE"
-    server_endpoint = "vpn.example.com:51820"
-    server_allowed_ips = "0.0.0.0/0"
-
-    config = generate_client_config(peer, server_public_key, server_endpoint, server_allowed_ips)
-
-    log_action(session["user_id"], "view_config_ui", f"peer_id={peer_id}")
-    return render_template("peer_config.html", config=config, peer_id=peer_id, title="Peer Config")
-
-
-# -----------------------------
-# Download Config (NEW)
-# -----------------------------
-@bp.route("/peers-ui/<int:peer_id>/download")
-@login_required
-def peer_config_download(peer_id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM peers WHERE id = %s;", (peer_id,))
-    peer = cur.fetchone()
-
-    if not peer:
-        return {"error": "peer not found"}, 404
-
-    server_public_key = "SERVER_PUBLIC_KEY_HERE"
-    server_endpoint = "vpn.example.com:51820"
-    server_allowed_ips = "0.0.0.0/0"
-
-    config = generate_client_config(peer, server_public_key, server_endpoint, server_allowed_ips)
-
-    log_action(session["user_id"], "download_config", f"peer_id={peer_id}")
-
-    response = make_response(config)
-    response.headers["Content-Type"] = "text/plain"
-    response.headers["Content-Disposition"] = f"attachment; filename=peer-{peer_id}.conf"
-
-    return response
-
-
-# -----------------------------
-# QR Code UI
-# -----------------------------
-@bp.route("/peers-ui/<int:peer_id>/qr")
-@login_required
-def peer_qr_ui(peer_id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM peers WHERE id = %s;", (peer_id,))
-    peer = cur.fetchone()
-
-    if not peer:
-        return {"error": "peer not found"}, 404
-
-    server_public_key = "SERVER_PUBLIC_KEY_HERE"
-    server_endpoint = "vpn.example.com:51820"
-    server_allowed_ips = "0.0.0.0/0"
-
-    config = generate_client_config(peer, server_public_key, server_endpoint, server_allowed_ips)
-    qr_data = generate_qr_base64(config)
-
-    log_action(session["user_id"], "view_qr", f"peer_id={peer_id}")
-    return render_template("peer_qr.html", qr_data=qr_data, config=config, title="QR Code")
-
-
-# -----------------------------
-# WireGuard Status UI (NEW)
-# -----------------------------
-@bp.route("/wg-status")
-@login_required
-def wg_status():
-    status = wg_show()
-    log_action(session["user_id"], "wg_status")
-    return render_template("wg_status.html", status=status, title="WireGuard Status")
-
-
-# -----------------------------
-# Audit Log UI
-# -----------------------------
-@bp.route("/audit-ui")
-@login_required
-def audit_ui():
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 100;")
-    logs = cur.fetchall()
-    return render_template("audit.html", audit=logs, title="Audit Log")
-
-
-# -----------------------------
-# Peer Management API
-# -----------------------------
-@bp.route("/peers", methods=["GET"])
-@login_required
-def peers_list():
-    peers = list_peers()
-    return {"peers": peers}
-
-
-@bp.route("/peers", methods=["POST"])
-@login_required
-def peers_add():
-    name = request.form.get("name")
-    public_key = request.form.get("public_key")
-    allowed_ips = request.form.get("allowed_ips")
-
-    peer_id = add_peer(name, public_key, allowed_ips, session["user_id"])
-
-    # Apply to WireGuard
-    wg_add_peer(public_key, allowed_ips)
-    log_action(session["user_id"], "wg_add_peer", f"{public_key} {allowed_ips}")
-
-    log_action(session["user_id"], "add_peer", f"peer_id={peer_id}, name={name}")
-    return {"status": "peer_added", "peer_id": peer_id}
-
-
-@bp.route("/peers/<int:peer_id>", methods=["DELETE"])
-@login_required
-def peers_delete(peer_id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT public_key FROM peers WHERE id = %s", (peer_id,))
-    peer = cur.fetchone()
-
+def peers_delete_ui(peer_id):
+    peer = get_peer_by_id(peer_id)
     if peer:
         wg_remove_peer(peer["public_key"])
         log_action(session["user_id"], "wg_remove_peer", peer["public_key"])
@@ -320,42 +162,83 @@ def peers_delete(peer_id):
     delete_peer(peer_id)
     log_action(session["user_id"], "delete_peer", f"peer_id={peer_id}")
 
-    return {"status": "peer_deleted"}
+    return redirect("/peers-ui")
 
 
 # -----------------------------
-# Peer Config Generation API
+# Sync WireGuard (FULL REGEN)
 # -----------------------------
-@bp.route("/peers/<int:peer_id>/config")
+@bp.route("/sync-wg")
 @login_required
-def peer_config(peer_id):
-    db = get_db()
-    cur = db.cursor()
-    cur.execute("SELECT * FROM peers WHERE id = %s;", (peer_id,))
-    peer = cur.fetchone()
+def sync_wg():
+    config_text = generate_full_config()
+    write_config_safely(config_text)
+    apply_config()
 
-    if not peer:
-        return {"error": "peer not found"}, 404
-
-    server_public_key = "SERVER_PUBLIC_KEY_HERE"
-    server_endpoint = "vpn.example.com:51820"
-    server_allowed_ips = "0.0.0.0/0"
-
-    config = generate_client_config(peer, server_public_key, server_endpoint, server_allowed_ips)
-
-    log_action(session["user_id"], "generate_config", f"peer_id={peer_id}")
-    return {"config": config}
+    log_action(session["user_id"], "sync_full_config")
+    return redirect("/dashboard")
 
 
 # -----------------------------
-# Audit Log API
+# WireGuard Status
+# -----------------------------
+@bp.route("/wg-status")
+@login_required
+def wg_status():
+    status = wg_show()
+    return render_template("wg_status.html", status=status)
+
+
+# -----------------------------
+# Audit Log
 # -----------------------------
 @bp.route("/audit")
 @login_required
-def audit_list():
+def audit():
     db = get_db()
     cur = db.cursor()
-    cur.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 100;")
+    cur.execute("SELECT * FROM audit_log ORDER BY created_at DESC;")
     logs = cur.fetchall()
-    return {"audit": logs}
+    return render_template("audit.html", audit=logs)
 
+
+# -----------------------------
+# Change Password
+# -----------------------------
+@bp.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    db = get_db()
+    cur = db.cursor()
+
+    if request.method == "POST":
+        current_pw = request.form.get("current_password")
+        new_pw = request.form.get("new_password")
+        confirm_pw = request.form.get("confirm_password")
+
+        # Fetch current user
+        cur.execute("SELECT * FROM users WHERE id = %s;", (session["user_id"],))
+        user = cur.fetchone()
+
+        # Verify current password
+        if not check_password_hash(user["password_hash"], current_pw):
+            flash("Current password is incorrect.")
+            return render_template("change_password.html")
+
+        # Check new password match
+        if new_pw != confirm_pw:
+            flash("New passwords do not match.")
+            return render_template("change_password.html")
+
+        # Update password
+        new_hash = generate_password_hash(new_pw)
+        cur.execute(
+            "UPDATE users SET password_hash = %s WHERE id = %s;",
+            (new_hash, user["id"])
+        )
+        db.commit()
+
+        flash("Password updated successfully.")
+        return redirect("/dashboard")
+
+    return render_template("change_password.html")

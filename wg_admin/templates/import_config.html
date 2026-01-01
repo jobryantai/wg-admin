@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Import WireGuard Configuration</h2>
+
+<p>Upload a WireGuard <code>.conf</code> file to import peers into the system.</p>
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div style="
+            background: #ffeeba;
+            border: 1px solid #f5c06f;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        ">
+            {% for msg in messages %}
+                <p style="margin: 0;">{{ msg }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<form action="/import-config" method="POST" enctype="multipart/form-data" style="margin-top: 20px;">
+
+    <label for="config_file">Select WireGuard Config File</label><br>
+    <input type="file" id="config_file" name="config_file" accept=".conf" required
+           style="width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px;">
+
+    <button type="submit" style="
+        padding: 10px 15px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    ">Import Config</button>
+
+    <a href="/dashboard" style="
+        margin-left: 15px;
+        padding: 10px 15px;
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+    ">Cancel</a>
+
+</form>
+{% endblock %}
