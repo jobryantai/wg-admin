@@ -24,6 +24,7 @@
             <td style="padding: 10px; border: 1px solid #ccc;">{{ peer.allowed_ips }}</td>
             <td style="padding: 10px; border: 1px solid #ccc;">
                 <a href="/peers-ui/{{ peer.id }}/edit">Edit</a> |
+                <a href="/peers-ui/{{ peer.id }}/qr">QR</a> |
                 <form action="/peers-ui/{{ peer.id }}/delete" method="POST" style="display:inline;">
                     <button type="submit" style="color: red; background: none; border: none; cursor: pointer;">
                         Delete

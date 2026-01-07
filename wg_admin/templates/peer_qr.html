@@ -1,42 +1,11 @@
 {% extends "base.html" %}
-
 {% block content %}
-<h2>Peer QR Code</h2>
+<h2>QR Code for {{ peer.name }}</h2>
 
-<p>Scan this QR code with your WireGuard mobile app to import the configuration.</p>
+<img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
 
-<div style="
-    margin-top: 25px;
-    padding: 20px;
-    background: #fafafa;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    text-align: center;
-">
+<h3>Config Text</h3>
+<pre>{{ config_text }}</pre>
 
-    {% if qr_svg %}
-        <!-- Inline SVG QR Code -->
-        <div style="display: inline-block;">
-            {{ qr_svg|safe }}
-        </div>
-    {% elif qr_png %}
-        <!-- PNG QR Code (base64) -->
-        <img src="data:image/png;base64,{{ qr_png }}" alt="QR Code"
-             style="max-width: 300px; border: 1px solid #ccc; border-radius: 6px;">
-    {% else %}
-        <p>No QR code available.</p>
-    {% endif %}
-
-</div>
-
-<div style="margin-top: 20px;">
-    <a href="/peers-ui" style="
-        padding: 10px 15px;
-        background: #6c757d;
-        color: white;
-        text-decoration: none;
-        border-radius: 6px;
-    ">Back to Peers</a>
-</div>
-
+<a href="/peers-ui">Back to peers</a>
 {% endblock %}

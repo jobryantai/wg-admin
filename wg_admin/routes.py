@@ -1,15 +1,51 @@
 from flask import Blueprint, request, session, redirect, render_template, make_response, flash, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
+from .qrcodegen import generate_qr_base64
+
 
 from .db import get_db
 from .auth import verify_user, login_required
 from .peers import add_peer, list_peers, delete_peer, update_peer, get_peer_by_id
 from .wgconfig_full import generate_full_config, write_config_safely, apply_config
-from .wg import wg_show, wg_add_peer, wg_remove_peer
+from .wg import wg_show
 from .audit import log_action
+
+from time import time
+
+RATE_LIMIT_WINDOW = 60
+RATE_LIMIT_MAX = 5
+attempts = {}
+
+def too_many_attempts(ip):
+    now = time()
+    window_start = now - RATE_LIMIT_WINDOW
+    attempts.setdefault(ip, [])
+    attempts[ip] = [t for t in attempts[ip] if t > window_start]
+    return len(attempts[ip]) >= RATE_LIMIT_MAX
+
+def record_attempt(ip):
+    attempts.setdefault(ip, []).append(time())
+
+def retry_after_seconds(ip):
+    if ip not in attempts or not attempts[ip]:
+        return 0
+    now = time()
+    window_start = now - RATE_LIMIT_WINDOW
+    recent = [t for t in attempts[ip] if t > window_start]
+    if not recent:
+        return 0
+    oldest = min(recent)
+    return int(RATE_LIMIT_WINDOW - (now - oldest))
 
 bp = Blueprint("main", __name__)
 
+# -----------------------------
+# NEW: Full sync helper
+# -----------------------------
+def sync_full_config():
+    config_text = generate_full_config()
+    write_config_safely(config_text)
+    apply_config()
 
 # -----------------------------
 # Health Check
@@ -17,6 +53,10 @@ bp = Blueprint("main", __name__)
 @bp.route("/health")
 def health():
     return {"status": "ok"}
+
+# -----------------------------
+# Import Config
+# -----------------------------
 @bp.route("/import-config", methods=["GET", "POST"])
 @login_required
 def import_config():
@@ -25,18 +65,12 @@ def import_config():
         if not file:
             flash("No file uploaded.")
             return render_template("import_config.html")
-
-        # TODO: implement your import logic here
         flash("Config imported successfully.")
         return redirect("/dashboard")
-
     return render_template("import_config.html")
-
 
 # -----------------------------
 # Unified Entry Point
-# If NOT logged in → redirect to login
-# If logged in → show dashboard layout
 # -----------------------------
 @bp.route("/")
 @bp.route("/index.html")
@@ -45,26 +79,30 @@ def index():
         return redirect(url_for("main.login"))
     return render_template("dashboard.html")
 
-
 # -----------------------------
 # Login
 # -----------------------------
 @bp.route("/login", methods=["GET", "POST"])
 def login():
+    ip = request.remote_addr
     if request.method == "POST":
+        if too_many_attempts(ip):
+            retry = retry_after_seconds(ip)
+            return {
+                "error": "too many attempts",
+                "retry_after_seconds": retry,
+                "message": f"Try again in {retry} seconds."
+            }, 429
+        record_attempt(ip)
         username = request.form.get("username")
         password = request.form.get("password")
-
         user = verify_user(username, password)
         if user:
             session["user_id"] = user["id"]
             log_action(user["id"], "login")
             return redirect("/")
-
         return {"error": "invalid credentials"}, 401
-
     return render_template("login.html")
-
 
 # -----------------------------
 # Logout
@@ -75,15 +113,13 @@ def logout():
     session.clear()
     return redirect("/login")
 
-
 # -----------------------------
-# Main Dashboard (PRIMARY)
+# Dashboard
 # -----------------------------
 @bp.route("/dashboard")
 @login_required
 def dashboard():
     return render_template("dashboard.html")
-
 
 # -----------------------------
 # Peer List UI
@@ -94,7 +130,6 @@ def peers_ui():
     peers = list_peers()
     return render_template("peers.html", peers=peers)
 
-
 # -----------------------------
 # Add Peer UI
 # -----------------------------
@@ -102,7 +137,6 @@ def peers_ui():
 @login_required
 def peers_add_ui():
     return render_template("add_peer.html")
-
 
 @bp.route("/peers-ui/add", methods=["POST"])
 @login_required
@@ -112,11 +146,10 @@ def peers_add_ui_post():
     allowed_ips = request.form.get("allowed_ips")
 
     peer_id = add_peer(name, public_key, allowed_ips, session["user_id"])
-    wg_add_peer(public_key, allowed_ips)
+    sync_full_config()
 
     log_action(session["user_id"], "add_peer", f"peer_id={peer_id}")
     return redirect("/peers-ui")
-
 
 # -----------------------------
 # Edit Peer UI
@@ -127,9 +160,7 @@ def peers_edit_ui(peer_id):
     peer = get_peer_by_id(peer_id)
     if not peer:
         return {"error": "peer not found"}, 404
-
     return render_template("edit_peer.html", peer=peer)
-
 
 @bp.route("/peers-ui/<int:peer_id>/edit", methods=["POST"])
 @login_required
@@ -142,11 +173,10 @@ def peers_edit_ui_post(peer_id):
         return {"error": "peer not found"}, 404
 
     update_peer(peer_id, name, allowed_ips, session["user_id"])
-    wg_add_peer(peer["public_key"], allowed_ips)
+    sync_full_config()
 
     log_action(session["user_id"], "edit_peer", f"peer_id={peer_id}")
     return redirect("/peers-ui")
-
 
 # -----------------------------
 # Delete Peer UI
@@ -156,28 +186,48 @@ def peers_edit_ui_post(peer_id):
 def peers_delete_ui(peer_id):
     peer = get_peer_by_id(peer_id)
     if peer:
-        wg_remove_peer(peer["public_key"])
-        log_action(session["user_id"], "wg_remove_peer", peer["public_key"])
-
-    delete_peer(peer_id)
-    log_action(session["user_id"], "delete_peer", f"peer_id={peer_id}")
-
+        delete_peer(peer_id)
+        sync_full_config()
+        log_action(session["user_id"], "delete_peer", f"peer_id={peer_id}")
     return redirect("/peers-ui")
 
+# -----------------------------
+# Peer QR Code Generation
+# -----------------------------
+@bp.route("/peers-ui/<int:peer_id>/qr")
+@login_required
+def peer_qr(peer_id):
+    peer = get_peer_by_id(peer_id)
+    if not peer:
+        return {"error": "peer not found"}, 404
+
+    # Build the WireGuard config text for this peer
+    config_text = f"""
+[Interface]
+PrivateKey = <client_private_key_here>
+Address = {peer['allowed_ips']}
+
+[Peer]
+PublicKey = <server_public_key_here>
+Endpoint = <server_endpoint_here>
+AllowedIPs = 0.0.0.0/0, ::/0
+PersistentKeepalive = 25
+"""
+
+    # Generate QR code
+    qr_b64 = generate_qr_base64(config_text)
+
+    return render_template("peer_qr.html", peer=peer, qr_code=qr_b64, config_text=config_text)
 
 # -----------------------------
-# Sync WireGuard (FULL REGEN)
+# Sync WireGuard
 # -----------------------------
 @bp.route("/sync-wg")
 @login_required
 def sync_wg():
-    config_text = generate_full_config()
-    write_config_safely(config_text)
-    apply_config()
-
+    sync_full_config()
     log_action(session["user_id"], "sync_full_config")
     return redirect("/dashboard")
-
 
 # -----------------------------
 # WireGuard Status
@@ -187,7 +237,6 @@ def sync_wg():
 def wg_status():
     status = wg_show()
     return render_template("wg_status.html", status=status)
-
 
 # -----------------------------
 # Audit Log
@@ -200,7 +249,6 @@ def audit():
     cur.execute("SELECT * FROM audit_log ORDER BY created_at DESC;")
     logs = cur.fetchall()
     return render_template("audit.html", audit=logs)
-
 
 # -----------------------------
 # Change Password
@@ -216,21 +264,17 @@ def change_password():
         new_pw = request.form.get("new_password")
         confirm_pw = request.form.get("confirm_password")
 
-        # Fetch current user
         cur.execute("SELECT * FROM users WHERE id = %s;", (session["user_id"],))
         user = cur.fetchone()
 
-        # Verify current password
         if not check_password_hash(user["password_hash"], current_pw):
             flash("Current password is incorrect.")
             return render_template("change_password.html")
 
-        # Check new password match
         if new_pw != confirm_pw:
             flash("New passwords do not match.")
             return render_template("change_password.html")
 
-        # Update password
         new_hash = generate_password_hash(new_pw)
         cur.execute(
             "UPDATE users SET password_hash = %s WHERE id = %s;",
